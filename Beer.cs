@@ -6,13 +6,13 @@ public class Beer
 
 		System.Console.WriteLine ("What is your first name: ");
 		First = System.Console.ReadLine ();
-		System.Console.ReadLine ("What is your middle name: ");
+		System.Console.WriteLine ("What is your middle name: ");
 		Middle = System.Console.ReadLine();
-		System.Console.Readline ("What is your last name: ");
+		System.Console.WriteLine ("What is your last name: ");
 		Last = System.Console.ReadLine();
 		System.Console.WriteLine (" Now I will take you name and print it backwards.");
 	
-		Drunk(Firts, Middle, Last);
+		Drunk(First, Middle, Last);
 	}
 
 	public static void Drunk(string f, string m, string l)
