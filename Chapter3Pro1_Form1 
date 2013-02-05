@@ -1,0 +1,5 @@
+private void button1_Click(object sender, EventArgs e)
+        {
+            int len = Talker.Blah(tb1.Text, (int)nud1.Value);
+            MessageBox.Show("The message length is: " + len);
+        }
