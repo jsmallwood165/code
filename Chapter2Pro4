@@ -1,0 +1,107 @@
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Windows.Forms;
+using System.Threading;
+
+
+namespace Chapter2Pro4
+{
+    public partial class Form1 : Form
+    {
+        public Form1()
+        {
+            InitializeComponent();
+        }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            while (Visible)
+            {
+                for (int c = 0; c < 154 && Visible; c++)
+                {
+                    this.BackColor = Color.FromArgb(c, 255 - c, c);
+                    Application.DoEvents();
+                    Thread.Sleep(3);
+                }
+
+                for (int c = 254; c >= 0 && Visible; c--)
+                {
+                    this.BackColor = Color.FromArgb(c, 255 - c, c);
+                    Application.DoEvents();
+                    Thread.Sleep(3);
+                }
+            }
+        }
+
+        private void button2_Click(object sender, EventArgs e)
+        {
+            int x = 0;
+            string Poem = "";
+
+            while (x < 4)
+            {
+                Poem = Poem + "a";
+                if (x < 1)
+                {
+                    Poem = Poem + " ";
+                }
+                Poem = Poem + "n";
+                    
+                if (x > 1)
+                {
+                    Poem = Poem + " oyster";
+                    x = x + 2;
+                }
+
+                if (x == 1)
+                {
+                    Poem = Poem + "noys ";
+                }
+                if (x < 1)
+                {
+                    Poem = Poem + "oise ";
+                }
+                x = x + 1;
+            }
+            MessageBox.Show(Poem);
+                  
+        }
+
+        private void button3_Click(object sender, EventArgs e)
+        {
+            int g = 0;
+            string geeta = "";
+
+            while (g < 7)
+            {
+                geeta = geeta + "Gee";
+                if (g < 1)
+                {
+                    geeta = geeta + "ta";
+                }
+                geeta = geeta + " ";
+                g = g + 1;
+
+                if (g == 1)
+                {
+                    geeta = geeta + "Lov";
+                    g = g + 2;
+                }
+
+                if (g > 2)
+                {
+                    geeta = geeta + "es";
+                }
+                geeta = geeta + " Me!!!";
+                g = g + 4;
+   
+            }
+            MessageBox.Show(geeta);
+        }
+    }
+}
