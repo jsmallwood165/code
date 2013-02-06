@@ -6,12 +6,19 @@ public class getFiles
 	{
 		System.Console.WriteLine("Enter Path: ");
 		string input = System.Console.ReadLine();
-		string[] filePaths = Directory.GetFiles(input);
-
-		foreach (string i in filePaths)
+		System.Console.WriteLine("What file extension would you like to see: ");
+		string ext1 = System.Console.ReadLine();
+		string[] ext2 = ext1.Split(',');
+		
+		
+		foreach (string e in ext2)
 		{
-			System.Console.WriteLine(i);
-		}		
+			foreach( string f in Directory.GetFiles(input, e) )
+			{
+				System.Console.WriteLine("> " + f);
+			}
+		}
+
 	}
 }
 
