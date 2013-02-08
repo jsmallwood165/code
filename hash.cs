@@ -6,22 +6,24 @@ public class Hashes
 	public static void Main()
 	{	
 		string name = "";
-		
-		
+		int x = 0;
 		Hashtable hash = new Hashtable();
-		Console.WriteLine("Give me your grandfathers name: ");
-		name = Console.ReadLine();
-		Console.WriteLine("Give me your grandfathers age: ");
-		hash[name] = Console.ReadLine();
 
-		//Console.WriteLine("Give me your fathers age: ");
-		//hash[2] = Console.ReadLine();
-		//Console.WriteLine("Give me your brothers age: ");
-		//hash[3] = Console.ReadLine();
 
-		foreach (DictionaryEntry hashEntry in hash)
-		{
-			Console.WriteLine("{0}, {1}", hashEntry.Key, hashEntry.Value);
-		}			
+		while (x < 3)
+		{	
+			Console.WriteLine("Give me someone you know name: ");
+			name = Console.ReadLine();
+			Console.WriteLine("Now give me their age: ");
+			hash[name] = Console.ReadLine();
+			
+
+			foreach (DictionaryEntry hashEntry in hash)
+			{
+				Console.WriteLine("{0}, {1}", hashEntry.Key, hashEntry.Value);
+			}
+			x = x + 1;
+		}
+						
 	}	
 }
