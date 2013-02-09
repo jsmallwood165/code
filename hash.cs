@@ -1,29 +1,32 @@
-using System;
+using System.Collections.Generic;
 using System.Collections;
+using System;
 
-public class Hashes
+public class mizzain
 {
-	public static void Main()
-	{	
-		string name = "";
+   public static void Main()
+   {
+		SortedList<int, string> people = new SortedList<int, string>();
 		int x = 0;
-		Hashtable hash = new Hashtable();
 
+		while( x < 3)
+		{
+      		Console.WriteLine("Name: ");
+			string name = Console.ReadLine();
 
-		while (x < 3)
-		{	
-			Console.WriteLine("Give me someone you know name: ");
-			name = Console.ReadLine();
-			Console.WriteLine("Now give me their age: ");
-			hash[name] = Console.ReadLine();
-			
+			Console.WriteLine("Age: ");
+			int age = Convert.ToInt32( Console.ReadLine() );
 
-			foreach (DictionaryEntry hashEntry in hash)
-			{
-				Console.WriteLine("{0}, {1}", hashEntry.Key, hashEntry.Value);
-			}
-			x = x + 1;
+			people.Add( age, name );
+
+			x++;
 		}
-						
-	}	
+	
+		foreach( KeyValuePair<int, string> p in people )
+		{
+			Console.WriteLine("{1} is {0} years old", p.Key, p.Value );
+		}
+
+   }
 }
+
