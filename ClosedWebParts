@@ -1,0 +1,248 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using Microsoft.SharePoint;
+using Microsoft.SharePoint.Workflow;
+using Microsoft.SharePoint.WebPartPages;
+using Microsoft.SharePoint.Publishing;
+using System.IO;
+
+namespace ClosedWebParts
+{
+    class Program
+    {
+        static void Main(string[] args)
+        {           
+            Program prgrm = new Program();
+            prgrm.ProcessArgument(args);
+            InitializeWriter();
+            if (!string.IsNullOrEmpty(prgrm.SiteUrl))
+            {
+                try
+                {
+                    using (SPSite site = new SPSite(prgrm.SiteUrl))
+                    {
+                        SPWebCollection webs = site.AllWebs;
+                        foreach (SPWeb web in webs)
+                        {
+                            using (web)
+                            {
+                                if (prgrm.Command.ToLower() != "delete")
+                                    prgrm.IsDelete = false;
+                                else
+                                    prgrm.IsDelete = true;
+                                try
+                                {
+                                    ListWebpartsInWeb(web);
+                                }
+                                catch (Exception)
+                                {
+                                    Console.WriteLine("There is an error in openning the site try again with correct url " + web.Url);
+                                    writer.WriteLine("There is an error in openning the site try again with correct url " + web.Url);
+                                }
+                            }
+                        }
+                    }
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine("There is an error in openning the site try again with correct url " + Environment.NewLine + e.InnerException);
+                }
+            }
+            DisposeWriter();
+        }
+
+        public bool IsDelete { get; set; }
+        public String SiteUrl { get; set; }
+        public String Command { get; set; }
+
+        private void ProcessArgument(string[] args)
+        {
+            Command = "QUERY";
+            switch (args.Length)
+            {
+                case 2:
+                    if (args[0].ToLower() != "-site")
+                        DisplayHelp();
+                    else
+                        SiteUrl = args[1];
+                    break;
+                case 4:
+                    if (args[0].ToLower() == "-site" && args[2].ToLower() == "-command")
+                    {
+                        SiteUrl = args[1];
+                        Command = args[3];
+                    }
+                    else if (args[0].ToLower() == "-command" || args[2].ToLower() == "-site")
+                    {
+                        SiteUrl = args[3];
+                        Command = args[1];
+                    }
+                    else
+                    {
+                        DisplayHelp();
+                    }
+                    break;
+                case 0:
+                    GetInputFromKeyBoard();
+                    break;
+                default:
+                    DisplayHelp();
+                    break;
+            }
+        }
+
+        private void GetInputFromKeyBoard()
+        {
+            Console.Write("Enter Site Collection URL where you want to check the Closed Webparts: ");
+            SiteUrl = Console.In.ReadLine();
+        }
+
+        private static void DisplayHelp()
+        {
+            Console.WriteLine("The Proper Commands are: " + Environment.NewLine +
+                "\"CloseWebPArts.exe -site siteUrl [-command query|delete]\"" + Environment.NewLine +
+                "Default Command is query" + Environment.NewLine +
+                "    Example. For Quering Closed Webparts use \"CloseWebPArts.exe -site siteUrl -command query\"" + Environment.NewLine);
+        }
+
+        private static bool ListWebpartsInWeb(SPWeb web)
+        {
+            //foreach (SPList lst in web.Lists)
+            CheckPagesInDocLibrary(web);
+
+            if (web != null && PublishingWeb.IsPublishingWeb(web))
+            {
+                var w = PublishingWeb.GetPublishingWeb(web);
+                foreach (SPListItem item in w.PagesList.Items)
+                {
+                    CheckClosedWebPart(item);
+                }
+            }
+            else
+            {
+                foreach (SPFile file in web.Files)
+                {
+                    if (file.Name.Contains(".aspx"))
+                    {
+                        CheckWebPart(web, file.ServerRelativeUrl);
+                    }
+                }
+
+            }
+            return true;
+        }
+
+        private static void CheckPagesInDocLibrary(SPWeb web)
+        {
+            for (int i = 0; i < web.Lists.Count; i++)
+            {
+                SPList lst = web.Lists[i];
+                if (lst.BaseTemplate == SPListTemplateType.DocumentLibrary) //All the site pages sit in a document library so no need to get specific for PMC
+                {
+                    try
+                    {
+                        SPListItemCollection coll = lst.GetItems(new SPQuery());
+                        foreach (SPListItem item in coll)
+                        {
+                            if (item.Name.ToLower().Contains(".aspx"))
+                            {
+                                CheckClosedWebPart(item);
+                            }
+                        }
+                    }
+                    catch (Exception) { }
+                }
+            }
+        }
+
+        private static void CheckClosedWebPart(SPListItem p)
+        {
+            try
+            {
+                SPLimitedWebPartManager mgr = p.File.GetLimitedWebPartManager(System.Web.UI.WebControls.WebParts.PersonalizationScope.Shared);
+                int count = mgr.WebParts.Count;
+                for (int i = 0; i < count; i++ )
+                {
+                    WebPart wp = (WebPart)mgr.WebParts[i];
+                    if (wp.IsClosed)
+                    {
+                        //TODO: Check whether or not all webparts which are closed are provisioned---> Publishing Sites
+                        Console.WriteLine(wp.Title + "-->  " + wp.GetType().Name + "--->" + p.Web.Url + "/" + p.Url);
+                        WriteReport(string.Format("{0},{1},{2}", wp.Title, wp.GetType().Name, p.Web.Url + "/" + p.Url));
+                    }
+                }
+                if (mgr != null)
+                {
+                    if (mgr.Web != null)
+                        mgr.Web.Dispose();
+                    mgr.Dispose();
+                    mgr = null;
+                }
+
+            }
+            catch (Exception) { }
+        }
+
+        private static void CheckWebPart(SPWeb web, string relativeUrl)
+        {
+            try
+            {
+                SPLimitedWebPartManager mgr = web.GetLimitedWebPartManager(relativeUrl, System.Web.UI.WebControls.WebParts.PersonalizationScope.Shared);
+                int count = mgr.WebParts.Count;
+                for (int i = 0; i < count; i++ )
+                {
+                    WebPart wp = (WebPart)mgr.WebParts[i];
+                    if (wp.IsClosed)
+                    {
+                        //TODO: Check whether or not all webparts which are closed are provisioned
+                        Console.WriteLine(wp.Title + " --> " + wp.GetType().Name + "--->" + web.Site.Url + relativeUrl);
+                        WriteReport(string.Format("{0},{1},{2}", wp.Title, wp.GetType().Name, web.Site.Url + relativeUrl));
+                    }
+                }
+                if (mgr != null)
+                {
+                    if (mgr.Web != null)
+                        mgr.Web.Dispose();
+                    mgr.Dispose();
+                    mgr = null;
+                }
+
+            }
+            catch (Exception) { }
+        }
+        private static StreamWriter writer;
+        private static void InitializeWriter()
+        {
+         
+            if (!Directory.Exists("Report"))
+            {
+                Directory.CreateDirectory("Report");
+            }
+            string actualFile = "Report\\ClosedWebPArt.csv";
+            if (!File.Exists("Report"))
+            {
+                FileStream f = File.Create(actualFile);
+                f.Close();
+            }
+
+            writer = new StreamWriter(actualFile, false);
+
+            writer.Write("Title,");
+            writer.Write("Type,");
+            writer.Write("URL");           
+            writer.Write(writer.NewLine);
+        }
+        private static void WriteReport(String str)
+        {
+            writer.Write(str);
+            writer.Write(writer.NewLine);
+        }
+        private static void DisposeWriter()
+        {
+            writer.Close();
+            writer.Dispose();
+        }
+    }
+}
