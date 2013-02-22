@@ -1,0 +1,232 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using Microsoft.SharePoint;
+using Microsoft.SharePoint.Administration;
+using System.Globalization;
+using System.IO;
+
+
+namespace GetWebSizes
+{
+    class Program
+    {
+        public struct sizeAttribs
+        {
+            public long fileSize;
+            public long versionSize;
+            public long recycleBinSize;
+            public int versionTotal, versionFileCount;
+        }
+
+        public static sizeAttribs GetSPFolderSize(SPFolder folder, sizeAttribs sizes)
+        {
+
+            
+
+            long byteCount = 0;
+
+            // calculate the files in the immediate folder
+            foreach (SPFile file in folder.Files)
+            {
+                
+                sizes.fileSize += file.TotalLength;
+                
+
+                //Count up the file versions
+                int versions = 0;
+
+                try
+                {
+
+                    Console.WriteLine(file.Name + " " + file.Item.Title);
+                }
+                catch (Exception ex) {}
+
+                //problematic files.
+                //if (file.Name == "15_.000") 
+                //    continue; 
+                //if (file.Name == "403_.000") continue;
+                //if (file.Name == "485_.000") continue;
+                //if (file.Name == "730_.000") continue;
+                //if (file.Name == "435_.000") continue;
+                try
+                {
+                    if (file.Item.ParentList.DefaultViewUrl.Contains("/DCS/OESAE/DEDMS/CFRMS/Lists/actionitems/allais.aspx"))
+                        continue;
+                }
+                catch (Exception ex) { }
+
+                // also include file versions
+                for (int i = 0; i < file.Versions.Count; i++)
+                //foreach (SPFileVersion fileVersion in file.Versions)
+                {
+                    SPFileVersion fileVersion = file.Versions[i];
+
+                    try
+                    {
+                        Console.WriteLine(file.Item.ParentList.ParentWeb.Url + " " + file.Title + " " + fileVersion.VersionLabel);
+                    }
+                    catch (Exception ex) { }
+                    
+                    versions++;
+                    sizes.versionSize += fileVersion.Size;
+                    
+                }
+
+                //If the versions were not equal to zero, add them to the version tally
+                if (versions != 0)
+                {
+                    
+                    sizes.versionFileCount++;
+                    sizes.versionTotal += versions;
+                }
+                
+            }
+
+            // Handle sub folders
+            foreach (SPFolder subFolder in folder.SubFolders)
+            {
+                sizes = GetSPFolderSize(subFolder, sizes);
+            }
+
+            return sizes;
+        }
+
+        public static string ConvertBytesToDisplayText(long byteCount)
+        {
+            string result = "";
+
+            result = (byteCount / Math.Pow(1024, 2)).ToString("#,#.##", CultureInfo.InvariantCulture);
+            result = result.Replace(',', ';');
+
+            //if (byteCount > Math.Pow(1024, 3))
+            //{
+            //    // display as gb
+            //    result = (byteCount / Math.Pow(1024, 3)).ToString("#,#.##", CultureInfo.InvariantCulture) + " GB";
+            //}
+            //else if (byteCount > Math.Pow(1024, 2))
+            //{
+            //    // display as mb
+            //    result = (byteCount / Math.Pow(1024, 2)).ToString("#,#.##", CultureInfo.InvariantCulture) + " MB";
+            //}
+            //else if (byteCount > 1024)
+            //{
+            //    // display as kb
+            //    result = (byteCount / 1024).ToString("#,#.##", CultureInfo.InvariantCulture) + " KB";
+            //}
+            //else
+            //{
+            //    // display as bytes
+            //    result = byteCount.ToString("#,#.##", CultureInfo.InvariantCulture) + " Bytes";
+            //}
+
+            return result;
+        }
+
+
+        static void writeToOutput(string line, bool append = true)
+        {
+            StreamWriter sw = new StreamWriter("WebSizesAndPMC.csv", append);
+            sw.WriteLine(line);
+            sw.Close();
+        }
+
+        static void Main(string[] args)
+        {
+            SPServiceCollection services = SPFarm.Local.Services;
+            SPWebApplication webApp80 = null; //Will hold the SharePoint - 80 web app.
+
+            //Initialize the test file
+            writeToOutput("Web, Total Size, Files, File Versions, Recycle Bin, Average Version #, Template", false);
+
+            bool pastThePoint = false;
+
+            try
+            {
+
+                foreach (SPService service in services)
+                {
+                    if (service is SPWebService)
+                    {
+                        SPWebService webService = (SPWebService)service;
+
+                        foreach (SPWebApplication webApp in webService.WebApplications)
+                        {
+                            if (webApp.ToString().ToUpper().Contains(" 80"))
+                            {
+                                Console.WriteLine("Got 80 web app.");
+                                webApp80 = webApp;
+                            }
+                        }
+                    }
+                }
+
+
+                foreach (SPSite site in webApp80.Sites)
+                {
+                    //For now, do only OTSO and DCS...we can easily modify this to do more later.
+                    if (!(site.Url.ToUpper().Contains("DCS")))
+                    {
+                        Console.WriteLine("Ignoring Site Coll:  " + site.Url);
+                        site.Dispose();
+                        continue;
+                    }
+
+                    Console.WriteLine("Processing Site Coll:  " + site.Url);
+
+                    foreach (SPWeb web in site.AllWebs)
+                    {
+                        //Don't do anything until we get past the point we were at before
+                        if (web.Url.ToUpper().Contains("DCS/OTSO/DRMA/ITCB") && pastThePoint == false)
+                        {
+                            pastThePoint = true;
+                            continue;
+                        }
+
+                        if (pastThePoint == false) continue;
+
+                        sizeAttribs sizes; sizes.fileSize = 0; sizes.versionSize = 0; sizes.recycleBinSize = 0; sizes.versionTotal = 0; sizes.versionFileCount = 0;
+
+                        
+                        
+                        sizes = GetSPFolderSize(web.RootFolder, sizes);
+
+                        sizes.recycleBinSize += web.RecycleBin.OfType<SPRecycleBinItem>().Select(item => item.Size).ToArray<long>().Sum();
+
+                        float versionAverage = 0;
+
+                        if (sizes.versionFileCount != 0) versionAverage = (float)((float)sizes.versionTotal / (float)sizes.versionFileCount);
+
+                        writeToOutput(web.Url + ", " +
+                            ConvertBytesToDisplayText(sizes.fileSize + sizes.versionSize + sizes.recycleBinSize) + ", " +
+                            ConvertBytesToDisplayText(sizes.fileSize) + ", " +
+                            ConvertBytesToDisplayText(sizes.versionSize) + ", " +
+                            ConvertBytesToDisplayText(sizes.recycleBinSize) + ", " +
+                            versionAverage + ", " +
+                            web.WebTemplate.ToString());
+
+
+
+                        Console.WriteLine("Url: {0}, Size: {1}", web.Url, ConvertBytesToDisplayText(sizes.fileSize) + " " + ConvertBytesToDisplayText(sizes.versionSize) + " " + ConvertBytesToDisplayText(sizes.recycleBinSize) + " " + versionAverage);
+
+
+
+                        web.Dispose();
+                    }
+
+                    site.Dispose();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+
+            Console.WriteLine("Done!");
+            Console.ReadLine();
+        }
+        
+    }
+}
