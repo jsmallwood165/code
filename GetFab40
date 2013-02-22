@@ -1,0 +1,102 @@
+using System;
+using System.Collections.Generic;
+using System.Text;
+using Microsoft.SharePoint;
+using Microsoft.SharePoint.Administration;
+using System.IO;
+
+namespace GetFab40Sites
+{
+    class Program
+    {
+        static void writeToFile(string fileName, bool append, string message)
+        {
+            StreamWriter sw = new StreamWriter(fileName, append);
+
+            sw.WriteLine(message);
+
+            sw.Close();
+        }
+
+        static void Main(string[] args)
+        {
+            //Create and populate a dictionary for all the Fab 40 Application Templates
+            Dictionary<string, string> Fab40Templates = new Dictionary<string, string>();
+            Fab40Templates.Add("ABSENCE", "Absence and Vacation Schedule");
+            Fab40Templates.Add("BT", "Bug Database");
+            Fab40Templates.Add("CALLCENTER", "Call Center");
+            Fab40Templates.Add("CM", "Contact Management");
+            Fab40Templates.Add("COMPROC", "Compliance Process Support Site");
+            Fab40Templates.Add("DR", "Document Library and Review");
+            Fab40Templates.Add("EVENTPLAN", "Event Planning");
+            Fab40Templates.Add("EXREPORTS", "Expense Reimbursement and Approval Site");
+            Fab40Templates.Add("HELPDESK", "Help Desk");
+            Fab40Templates.Add("IT", "Inventory Tracking");
+            Fab40Templates.Add("ITTEAM", "IT Team Workspace");
+            Fab40Templates.Add("JRIM", "Job Requisition and Interview Management");
+            Fab40Templates.Add("KB", "Knowledge Base");
+            Fab40Templates.Add("LL", "Lending Library");
+            Fab40Templates.Add("PATM", "Physical Asset Tracking and Management");
+            Fab40Templates.Add("PROJCHANGE", "Change Request Management");
+            Fab40Templates.Add("PROJMULTI", "Budgeting and Tracking Multiple Projects");
+            Fab40Templates.Add("PROJSING", "Project Tracking Workspace");
+            Fab40Templates.Add("RER", "Room and Equipment Reservations");
+            Fab40Templates.Add("ST", "Sales Lead Pipeline");
+            
+
+
+            //Get the 80 web app.
+            SPWebApplication webApp = null;
+            SPServiceCollection services = SPFarm.Local.Services;
+
+
+            foreach (SPService service in services)
+            {
+                if (service is SPWebService)
+                {
+                    SPWebService webService = (SPWebService)service;
+
+
+                    foreach (SPWebApplication currWebApp in webService.WebApplications)
+                    {
+                        if (currWebApp.Name.ToUpper().Contains("80")) webApp = currWebApp;
+                    }
+                }
+            }
+
+            if (webApp == null)
+            {
+                Console.WriteLine("Could not find 80 web application");
+            }
+            else
+            {
+                writeToFile("Output.csv", false, "URL,Web Template");
+                foreach (SPSite site in webApp.Sites)
+                {
+                    foreach (SPWeb web in site.AllWebs)
+                    {
+                        Console.WriteLine(web.Url);
+
+                        if (Fab40Templates.ContainsKey(web.WebTemplate.ToUpper()))
+                        {
+                            string URL;
+                            try
+                            {
+                                URL = web.Url;
+                            }
+                            catch
+                            {
+                                URL = "ERROR!  UNABLE TO ACQUIRE URL!";
+                            }
+                            writeToFile("Output.csv", true, URL + "," + Fab40Templates[web.WebTemplate.ToUpper()]);
+
+                        }
+
+                    }
+                }
+            }
+
+
+        }
+    }
+}
