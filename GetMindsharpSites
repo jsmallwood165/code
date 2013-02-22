@@ -1,0 +1,77 @@
+using System;
+using System.Collections.Generic;
+using System.Text;
+using Microsoft.SharePoint;
+using Microsoft.SharePoint.Administration;
+using System.IO;
+
+namespace GetMindsharpSites
+{
+    class Program
+    {
+        static void writeToFile(string fileName, bool append, string message)
+        {
+            StreamWriter sw = new StreamWriter(fileName, append);
+
+            sw.WriteLine(message);
+
+            sw.Close();
+        }
+
+        static void Main(string[] args)
+        {
+            //Get the 80 web app.
+            SPWebApplication webApp = null;
+            SPServiceCollection services = SPFarm.Local.Services;
+
+
+            foreach (SPService service in services)
+            {
+                if (service is SPWebService)
+                {
+                    SPWebService webService = (SPWebService)service;
+
+
+                    foreach (SPWebApplication currWebApp in webService.WebApplications)
+                    {
+                        if (currWebApp.Name.ToUpper().Contains("80")) webApp = currWebApp;
+                    }
+                }
+            }
+
+            if (webApp == null)
+            {
+                Console.WriteLine("Could not find 80 web application");
+            }
+            else
+            {
+                writeToFile("Output.csv", false, "URL,WEB TEMPLATE,WEB AUTHOR EMAIL,REQUEST ACCESS EMAIL");
+                foreach (SPSite site in webApp.Sites)
+                {
+                    foreach (SPWeb web in site.AllWebs)
+                    {
+                        Console.WriteLine(web.Url);
+
+                        if (web.WebTemplate.ToUpper() == "MSCBTLIBRARY")
+                        {
+                            string userEmail;
+                            try
+                            {
+                                userEmail = web.Author.Email;
+                            }
+                            catch
+                            {
+                                userEmail = "ERROR!  UNABLE TO FIND USER";
+                            }
+                            writeToFile("Output.csv", true, web.Url + "," + web.WebTemplate + "," + userEmail + "," + web.RequestAccessEmail);
+
+                        }
+                            
+                    }
+                }
+            }
+
+
+        }
+    }
+}
