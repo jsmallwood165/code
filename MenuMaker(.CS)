@@ -1,0 +1,26 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Windows.Forms;
+
+namespace Chap4Pro5_Sandwich
+{
+    class MenuMaker
+    {
+        public Random Randomizer;
+
+        string[] Meats = { "Roast Beef", "Salami", "Turkey", "Ham", "Pastrami" };
+        string[] Condiments = { "Yellow Mustard", "Brown Mustard", "Mayo", "Honey Mustard", "Relish", "French Dreassing" };
+        string[] Breads = { "Rye", "Wheat", "White", "Pumbernickle", "Italian Bread", "a Roll" };
+
+        public string GetMenuItem()
+        {
+            string RandomMeat = Meats [Randomizer.Next(Meats.Length)];
+            string RandomCondiments = Condiments[Randomizer.Next(Condiments.Length)];
+            string RandonBreads = Breads[Randomizer.Next(Breads.Length)];
+
+            return RandomMeat + " with " + RandomCondiments + " on " + RandonBreads;
+        }
+    }
+}
