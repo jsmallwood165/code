@@ -93,11 +93,11 @@ namespace ClosedWebParts
             }
         }
 
-        private void GetInputFromKeyBoard()
+        //private void GetInputFromKeyBoard()
         {
             Console.Write("Enter Site Collection URL where you want to check the Closed Webparts: ");
             SiteUrl = Console.In.ReadLine();
-        }
+        //}
 
         private static void DisplayHelp()
         {
